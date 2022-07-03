@@ -1,10 +1,12 @@
 import os
-from sqlalchemy import Column, String, Integer, create_engine
+from sqlalchemy import Column, ForeignKey, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
+from flask_migrate import Migrate
 
 database_name = 'trivia'
-database_path = 'postgres://{}/{}'.format('localhost:5432', database_name)
+database_path = 'postgresql://postgres:12345@localhost:5432/' + database_name
+# 'postgresql://{}:/{}@{}/{}'.format('postgres','12345','localhost:5432', database_name)
 
 db = SQLAlchemy()
 
@@ -17,7 +19,8 @@ def setup_db(app, database_path=database_path):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.app = app
     db.init_app(app)
-    db.create_all()
+    Migrate(app,db)
+    # db.create_all()
 
 """
 Question
@@ -67,6 +70,7 @@ class Category(db.Model):
 
     id = Column(Integer, primary_key=True)
     type = Column(String)
+    
 
     def __init__(self, type):
         self.type = type
