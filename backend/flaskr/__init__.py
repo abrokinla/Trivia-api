@@ -153,8 +153,7 @@ def create_app(test_config=None):
             formatted_result =  paginate_questions(request, question_query)
             # categories = Category.query.all() #query the database to fetch all available categories
             # formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
-
-            # result_length = len(result)
+            
             if len(formatted_result)==0:
                 abort(404)
                 
@@ -215,8 +214,7 @@ def create_app(test_config=None):
                 next_quest = question[rndIndex]
                 return jsonify({
                     'success': True,
-                    'question': question,
-                    'previousQuestions': prev_quest
+                    'NextQuestions': next_quest
                 })
             else:
                 question_query = Question.query.filter(Question.category==quiz_category["id"]).filter(Question.id.notin_(prev_quest)).all()
@@ -225,8 +223,7 @@ def create_app(test_config=None):
                 next_quest = question[rndIndex]
                 return jsonify({
                     'success': True,
-                    'question': question,
-                    'previousQuestions': prev_quest
+                    'nextQuestions': next_quest
                 })
         except:            
             abort(404)
