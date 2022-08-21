@@ -56,8 +56,7 @@ SAMPLE: curl http://127.0.0.1:5000/questions?page=2
   },
   "success": true
 }
-(venv)
-jonh@BREEZY MINGW64 ~/trivia/triviaapp/backend (main)
+
 $ curl http://127.0.0.1:5000/questions?page=2
 {
   "categories": {
@@ -140,11 +139,11 @@ optical illusions?"
 
 DELETE /questions/<int:question_id>
 
-it deletes a specified question using the id of the question
+It deletes a specified question using the id of the question
 
 SAMPLE: curl -X DELETE http://127.0.0.1:5000/questions/3
 
-},
+{
     'deleted':3,
     'success':True,
     'totaL_questions:18
