@@ -248,9 +248,7 @@ def create_app(test_config=None):
                 "success": False, 
                 "error": 422, 
                 "message": "unprocessable"
-                }),422
-            
-        
+                }),422          
 
     @app.errorhandler(400)
     def bad_request(error):
