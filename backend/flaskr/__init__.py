@@ -145,7 +145,8 @@ def create_app(test_config=None):
             body = request.get_json()
             search_term = body.get('searchTerm', None)
             question_query= Question.query.filter(Question.question.ilike('%'+search_term+'%')).all()
-            
+
+            formatted_result =  paginate_questions(request, question_query)
             
             if question_query:
                 formatted_result =  paginate_questions(request, question_query)
@@ -195,6 +196,7 @@ def create_app(test_config=None):
         try:
             if (quiz_category['id'] == 0):
                 question_query = Question.query.all()
+
             else:
                 question_query = Question.query.filter_by(category=quiz_category['id']).all()
 
@@ -215,6 +217,7 @@ def create_app(test_config=None):
                         "question": next_quest.question
                     },
                     'previousQuestions': prev_quest
+
                 })
             
         except:            
