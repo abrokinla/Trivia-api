@@ -96,15 +96,11 @@ def create_app(test_config=None):
             questions = Question.query.order_by(Question.id).all()
             current_questions = paginate_questions(request, questions)
 
-            # categories = Category.query.all() #query the database to fetch all available categories
-            # formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
-
-
             return jsonify({
                 'success':True,
                 'deleted':question_id,
                 'question': current_questions,
-                'total_questions':len(questions)
+                'total_questions':len(Question.query.all())
                 # 'categories':formatted_category
             })
         except:
@@ -122,22 +118,21 @@ def create_app(test_config=None):
         newDifficulty = body.get('difficulty', None)
 
         try:
-            question = Question(question=newQuestion, answer=newAnswer, category=newCategory, \
-                difficulty=newDifficulty)
+            question = Question(question=newQuestion, answer=newAnswer, category=newCategory, difficulty=newDifficulty)
             question.insert()
 
             questions= Question.query.order_by(Question.id).all()
             current_questions = paginate_questions(request, questions)
 
-            categories = Category.query.all() #query the database to fetch all available categories
-            formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
+            # categories = Category.query.all() #query the database to fetch all available categories
+            # formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
 
             return jsonify({
                 'success':True,
-                'created':Question.id,
+                'created':question.id,
                 'questions':current_questions,
                 'total_questions':len(Question.query.all()),
-                'categories': formatted_category
+                # 'categories': formatted_category
             })
         except:
             abort(422)
@@ -150,55 +145,45 @@ def create_app(test_config=None):
             body = request.get_json()
             search_term = body.get('searchTerm', None)
             question_query= Question.query.filter(Question.question.ilike('%'+search_term+'%')).all()
-            formatted_result =  paginate_questions(request, question_query)
-            # categories = Category.query.all() #query the database to fetch all available categories
-            # formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
-
-            # result_length = len(result)
-            if len(formatted_result)==0:
-                abort(404)
-                
             
-            return jsonify({
-                'success':True,
-                'questions':formatted_result,
-                'total_questions':len(formatted_result)
+            
+            if question_query:
+                formatted_result =  paginate_questions(request, question_query)
+                            
+                return jsonify({
+                    'success':True,
+                    'questions':formatted_result,
+                    'total_questions':len(question_query)
                 
-            })
-
+                })
+            else:
+                abort(404)
         except:
             abort(404)
 
     # FETCH QUESTIONS BY CATEGORY ID ENDPOINT
     @app.route('/categories/<int:category_id>/questions', methods=['GET'])
-    def fetch_questions_by_category(category_id):
-        
+    def fetch_questions_by_category(category_id):      
 
-        categories = Category.query.all() #query the database to fetch all available categories
-        formatted_category = {Category.id:Category.type for Category in categories}#format the fetched records
-        
+        categories = Category.query.filter_by(id=category_id).one_or_none() #query the database to fetch all available categories
         
         try:
-            selection = Question.query.filter(Question.category == category_id).all()
-            # formatted_questions = [question.format() for question in questions]
-            current_question = paginate_questions(request, selection)
-            print(current_question)
-
-            if len(current_question) == 0:
-                abort(404)
-
-
+            if categories:
+                question = Question.query.filter(categories.id == category_id).all()                
+                current_question = paginate_questions(request, question)
             
-            return jsonify({
-                'success':True,
-                'questions': current_question,
-                'total_questions': len(selection),
-                'categories':formatted_category,
-                'current_category':category_id
-            })
-
+                return jsonify({
+                    'success':True,
+                    'questions': current_question,
+                    'total_questions': len(question),
+                    'category':categories.type,
+                    'current_category_id':category_id
+                })
+            else:
+                abort(404)
         except:
             abort(404)
+        
 
     # PLAY QUIZ ENDPOINT.
     @app.route('/quizzes', methods=['POST'])
@@ -209,25 +194,29 @@ def create_app(test_config=None):
 
         try:
             if (quiz_category['id'] == 0):
-                question_query = Question.query.filter(Question.id.notin_(prev_quest)).all()
-                question = paginate_questions(request, question_query)
-                rndIndex = random.randint(0, len(question)-1)
-                next_quest = question[rndIndex]
-                return jsonify({
-                    'success': True,
-                    'question': question,
-                    'previousQuestions': prev_quest
-                })
+                question_query = Question.query.all()
             else:
-                question_query = Question.query.filter(Question.category==quiz_category["id"]).filter(Question.id.notin_(prev_quest)).all()
-                question = paginate_questions(request, question_query)
-                rndIndex = random.randint(0, len(question)-1)
-                next_quest = question[rndIndex]
+                question_query = Question.query.filter_by(category=quiz_category['id']).all()
+
+                
+            rndIndex = random.randint(0, len(question_query)-1)
+            next_quest = question_query[rndIndex]
+
+            while next_quest.id not in prev_quest:
+                next_quest = question_query[rndIndex]
+                # question = paginate_questions(request, next_quest)
                 return jsonify({
                     'success': True,
-                    'question': question,
+                    'question': {
+                        "answer": next_quest.answer,
+                        "category": next_quest.category,
+                        "difficulty": next_quest.difficulty,
+                        "id": next_quest.id,
+                        "question": next_quest.question
+                    },
                     'previousQuestions': prev_quest
                 })
+            
         except:            
             abort(404)
 
@@ -240,6 +229,14 @@ def create_app(test_config=None):
                 "error": 404, 
                 "message": "resource not found"
                 }), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify({
+                "success": False, 
+                "error": 405, 
+                "message": "method not allowed"
+                }), 405
         
 
     @app.errorhandler(422)
@@ -260,13 +257,15 @@ def create_app(test_config=None):
             "message": "bad request"
             }), 400
 
-    @app.errorhandler(405)
-    def bad_request(error):
+    
+    
+    @app.errorhandler(500)
+    def internal_server_error(error):
         return jsonify({
             "success": False, 
-            "error": 405, 
-            "message": "Method Not Allowed"
-            }), 405
+            "error": 500, 
+            "message": "Internal Server Error"
+            }), 500
     
 
     return app
